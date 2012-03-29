@@ -1,122 +1,184 @@
 package com.calenderEvent;
 
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Color;
+import android.database.SQLException;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.text.TextUtils;
+import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.AdapterContextMenuInfo;
-import android.widget.AdapterView.OnItemSelectedListener;
+import android.view.ViewStub;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ListView;
-import android.widget.SearchView;
-import android.widget.SearchView.OnQueryTextListener;
 
+import com.actionbarsherlock.app.ActionBar;
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
 import com.calenderEvent.ContentProvider.RemindMeContentProvider;
 import com.calenderEvent.Database.RemindMeTable;
 import com.calenderEvent.controller.Controller;
 import com.calenderEvent.controller.CustomCursorAdapter;
+import com.calenderEvent.controller.ViewPagerAdapter;
 
-public class RemindMeOverviewActivity extends FragmentActivity implements
-		LoaderManager.LoaderCallbacks<Cursor>, OnItemSelectedListener,
-		OnQueryTextListener {
+public class RemindMeOverviewActivity extends SherlockFragmentActivity
+		implements LoaderManager.LoaderCallbacks<Cursor>,
+		ActionBar.OnNavigationListener {
 
 	private static final int ACTIVITY_CREATE = 0;
-	private static final int ACTIVITY_EDIT = 1;
+	public static final int ACTIVITY_EDIT = 1;
 	private static final int DELETE_ID = Menu.FIRST + 1;
+
+	private boolean searchLoader;
+
 	private CustomCursorAdapter adapter;
+	private CustomCursorAdapter searchAdapter;
+	private ViewPagerAdapter viewPagerAdapter;
 	private Controller controller;
 	private ListView contactView;
-	private String searchFilter;
+	private ViewPager viewPager;
+
+	private String[] projection;
+	private String[] selectionArgs;
+	private String selection;
+	private String order;
+
+	// Constructor
 
 	public RemindMeOverviewActivity() {
 		controller = new Controller(this);
+	}
+
+	/* Getters and setters */
+
+	public boolean isSearchLoader() {
+		return searchLoader;
+	}
+
+	public void setSearchLoader(boolean searchLoader) {
+		this.searchLoader = searchLoader;
+	}
+
+	public String getOrder() {
+		return order;
+	}
+
+	public void setOrder(String order) {
+		this.order = order;
+	}
+
+	public String getSelection() {
+		return selection;
+	}
+
+	public void setSelection(String selection) {
+		this.selection = selection;
+	}
+
+	public String[] getSelectionArgs() {
+		return selectionArgs;
+	}
+
+	public void setSelectionArgs(String[] selectionArgs) {
+		this.selectionArgs = selectionArgs;
+	}
+
+	public String[] getProjection() {
+		return projection;
+	}
+
+	public void setProjection(String[] projection) {
+		this.projection = projection;
 	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.contactpicker);
-		contactView = (ListView) findViewById(R.id.contactview);
-		fillData();
-		registerForContextMenu(contactView);
+		/*
+		 * viewPagerAdapter = new ViewPagerAdapter(this); viewPager =
+		 * (ViewPager) findViewById(R.id.pageflipper);
+		 * viewPager.setAdapter(viewPagerAdapter);
+		 */
+		fillData(this.getWindow().getDecorView());
+		setupActionBar();
+
+	}
+
+	private void setupActionBar() {
+		getSupportActionBar().setTitle("Remind Me");
+		getSupportActionBar().setDisplayShowHomeEnabled(false);
+		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		getSupportActionBar().setDisplayShowTitleEnabled(false);
+		Context context = getSupportActionBar().getThemedContext();
+		ArrayAdapter<CharSequence> list = ArrayAdapter.createFromResource(
+				context, R.array.navigation, R.layout.sherlock_spinner_item);
+		list.setDropDownViewResource(R.layout.sherlock_spinner_dropdown_item);
+		getSupportActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+		getSupportActionBar().setListNavigationCallbacks(list, this);
+		searchAdapter = new CustomCursorAdapter(this, R.layout.rowlayout, null,
+				null, null);
+
 	}
 
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v,
 			ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
-		menu.add(0, DELETE_ID, 0, R.string.menu_delete);
+		menu.add(v.getId(), DELETE_ID, 0, R.string.menu_delete);
 	}
 
 	@Override
 	public boolean onContextItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 		case DELETE_ID:
-			AdapterContextMenuInfo info = (AdapterContextMenuInfo) item
-					.getMenuInfo();
 			Uri uri = Uri.parse(RemindMeContentProvider.CONTENT_URI + "/"
-					+ info.id);
+					+ item.getGroupId());
 			getContentResolver().delete(uri, null, null);
 			adapter.notifyDataSetChanged();
+			//fillData(this.getWindow().getDecorView());
 			return true;
 		}
-		return super.onContextItemSelected(item);
-	}
-
-	// Opens the second activity if an entry is clicked
-
-	@Override
-	public void onItemSelected(AdapterView<?> l, View v, int position, long id) {
-		Intent i = new Intent(this, RemindMeDetailActivity.class);
-		Uri todoUri = Uri.parse(RemindMeContentProvider.CONTENT_URI + "/" + id);
-		i.putExtra(RemindMeContentProvider.CONTENT_ITEM_TYPE, todoUri);
-
-		// Activity returns an result if called with startActivityForResult
-		startActivityForResult(i, ACTIVITY_EDIT);
-
+		return super.onContextItemSelected((android.view.MenuItem) item);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
+
 		new MenuInflater(this).inflate(R.menu.listmenu, menu);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+		menu.findItem(R.id.insert).setIcon(android.R.drawable.ic_input_add)
+				.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+		menu.findItem(R.id.search)
+				.setIcon(R.drawable.ic_search)
+				.setActionView(R.layout.collapsible_edittext)
+				.setShowAsAction(
+						MenuItem.SHOW_AS_ACTION_ALWAYS
+								| MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
 
-			menu.findItem(R.id.insert).setIcon(android.R.drawable.ic_input_add)
-					.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-			SearchView sv = new SearchView(this);
-			sv.setBackgroundColor(Color.WHITE);
-			sv.setOnQueryTextListener(this);
-			menu.findItem(R.id.search)
-					.setIcon(R.drawable.ic_search_inverse)
-					.setActionView(sv)
-					.setShowAsAction(
-							MenuItem.SHOW_AS_ACTION_ALWAYS
-									| MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
-
-		}
 		return (super.onCreateOptionsMenu(menu));
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
+	public boolean onOptionsItemSelected(
+			com.actionbarsherlock.view.MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.insert:
 			createTodo();
 			return true;
-
+		case R.id.search:
+			AutoCompleteTextView textView = (AutoCompleteTextView) (item
+					.getActionView()).findViewById(R.id.editSearch);
+			textView.setAdapter(searchAdapter);
+			return true;
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -126,42 +188,69 @@ public class RemindMeOverviewActivity extends FragmentActivity implements
 		startActivityForResult(i, ACTIVITY_CREATE);
 	}
 
-	// Called with the result of the other activity
-	// requestCode was the origin request code send to the activity
-	// resultCode is the return code, 0 is everything is ok
-	// intend can be used to get data
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode,
 			Intent intent) {
+		adapter.notifyDataSetChanged();
+
+		//fillData(this.getWindow().getDecorView());
 		super.onActivityResult(requestCode, resultCode, intent);
 	}
 
-	private void fillData() {
+	public Cursor searchManager(String constraint) throws SQLException {
+		Uri searchUri = RemindMeContentProvider.CONTENT_URI_SEARCH;
 
-		String[] from = new String[] { RemindMeTable.COLUMN_SUMMARY };
+		String[] projection = { RemindMeTable.COLUMN_ID,
+				RemindMeTable.COLUMN_SUMMARY, RemindMeTable.COLUMN_CATEGORY };
+
+		if (constraint != null) {
+			constraint = constraint.trim() + "%";
+		}
+		String params[] = { constraint };
+		if (constraint == null) {
+			params = null;
+		}
+
+		try {
+			Cursor cursor = getContentResolver().query(searchUri, projection,
+					null, params, null);
+			if (cursor != null) {
+				cursor.moveToFirst();
+				return cursor;
+			}
+		} catch (SQLException e) {
+			Log.d("AutoCompleteDbAdapter", e.toString());
+			throw e;
+		}
+
+		return null;
+
+	}
+
+	public void fillData(View v) {
+		String[] from = new String[] { RemindMeTable.COLUMN_ID,
+				RemindMeTable.COLUMN_SUMMARY, RemindMeTable.COLUMN_CATEGORY };
 		int[] to = new int[] { R.id.label };
+		setOrder(RemindMeTable.COLUMN_CATEGORY + " ASC");
+		setProjection(from);
+		contactView = (ListView) v.findViewById(R.id.contactview);
 		getSupportLoaderManager().initLoader(0, null, this);
 		adapter = new CustomCursorAdapter(this, R.layout.rowlayout, from, to,
-				controller, null);
+				null);
 		contactView.setAdapter(adapter);
+		if (adapter.isEmpty()) {
+			ViewStub stub = (ViewStub) findViewById(R.id.empty);
+			contactView.setEmptyView(stub.inflate());
+		}
 	}
 
 	// Creates a new loader after the initLoader () call
 	@Override
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-		String[] projection = { RemindMeTable.COLUMN_ID,
-				RemindMeTable.COLUMN_SUMMARY };
 		CursorLoader cursorLoader;
-		if (searchFilter==null)
-			cursorLoader = new CursorLoader(this,
-					RemindMeContentProvider.CONTENT_URI, projection, null,
-					null, null);
-		else
-			cursorLoader = new CursorLoader(this,
-					RemindMeContentProvider.CONTENT_URI, projection,
-					RemindMeTable.COLUMN_DESCRIPTION,
-					new String[] { searchFilter.toString() },
-					RemindMeTable.COLUMN_DESCRIPTION + " COLLATE LOCALIZED ASC");
+		cursorLoader = new CursorLoader(this,
+				RemindMeContentProvider.CONTENT_URI, this.getProjection(),
+				this.getSelection(), this.getSelectionArgs(), this.getOrder());
 		return cursorLoader;
 	}
 
@@ -173,29 +262,13 @@ public class RemindMeOverviewActivity extends FragmentActivity implements
 
 	@Override
 	public void onLoaderReset(Loader<Cursor> loader) {
-		// data is not available anymore, delete reference
 		adapter.changeCursor(null);
 	}
 
 	@Override
-	public void onNothingSelected(AdapterView<?> arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public boolean onQueryTextChange(String newText) {
-		if (newText != null) {
-			searchFilter = !TextUtils.isEmpty(newText) ? newText : null;
-			getSupportLoaderManager().restartLoader(0, null, this);
-		}
-		return false;
-	}
-
-	@Override
-	public boolean onQueryTextSubmit(String query) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean onNavigationItemSelected(int itemPosition, long itemId) {
+		// viewPager.setCurrentItem(itemPosition,true);
+		return true;
 	}
 
 }

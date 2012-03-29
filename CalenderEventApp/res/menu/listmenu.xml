@@ -9,5 +9,9 @@
         android:id="@+id/insert"
         android:title="Insert">
     </item>
+    <item
+        android:id="@+id/navigaton"
+        android:title="Navigation">
+    </item>
 
 </menu>

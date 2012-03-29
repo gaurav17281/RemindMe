@@ -1,5 +1,6 @@
 package com.calenderEvent;
 
+
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.database.Cursor;
@@ -24,7 +25,7 @@ public class ContactPicker extends Activity {
 		int[] to = {};
 
 		CustomCursorAdapter adapter = new CustomCursorAdapter(this,
-				R.layout.rowlayout, from, to, controller, getContacts());
+				R.layout.rowlayout, from, to,  getContacts());
 		ListView contactView = (ListView) findViewById(R.id.contactview);
 		contactView.setAdapter(adapter);
 	}

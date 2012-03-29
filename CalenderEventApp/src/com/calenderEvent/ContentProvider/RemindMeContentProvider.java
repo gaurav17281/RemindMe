@@ -22,8 +22,12 @@ public class RemindMeContentProvider extends ContentProvider {
 	private RemindMeDatabaseHelper database;
 
 	// Used for the UriMacher
-	private static final int REMINDME = 10;
-	private static final int REMINDME_ID = 20;
+	private static final int REMINDME = 1;
+	private static final int REMINDME_ID = 2;
+	private static final int REMINDME_SEARCH = 3;
+	
+	 public static final String SEARCHPATH="Search";
+
 
 	private static final String AUTHORITY = "com.calenderEvent.ContentProvider";
 
@@ -31,16 +35,22 @@ public class RemindMeContentProvider extends ContentProvider {
 	public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY
 			+ "/" + BASE_PATH);
 
+	public static final Uri CONTENT_URI_SEARCH = Uri.parse("content://" + AUTHORITY
+			+ "/" + SEARCHPATH);
+
 	public static final String CONTENT_TYPE = ContentResolver.CURSOR_DIR_BASE_TYPE
 			+ "/remindmedir";
 	public static final String CONTENT_ITEM_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE
 			+ "/remindme";
 
+	
 	private static final UriMatcher sURIMatcher = new UriMatcher(
 			UriMatcher.NO_MATCH);
 	static {
 		sURIMatcher.addURI(AUTHORITY, BASE_PATH, REMINDME);
+		sURIMatcher.addURI(AUTHORITY, SEARCHPATH, REMINDME_SEARCH);
 		sURIMatcher.addURI(AUTHORITY, BASE_PATH + "/#", REMINDME_ID);
+		
 	}
 
 	@Override
@@ -55,6 +65,8 @@ public class RemindMeContentProvider extends ContentProvider {
 
 		// Uisng SQLiteQueryBuilder instead of query() method
 		SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
+		SQLiteDatabase db = database.getWritableDatabase();
+		Cursor cursor;
 
 		// Check if the caller has requested a column which does not exists
 		checkColumns(projection);
@@ -65,20 +77,27 @@ public class RemindMeContentProvider extends ContentProvider {
 		int uriType = sURIMatcher.match(uri);
 		switch (uriType) {
 		case REMINDME:
+			cursor = queryBuilder.query(db, projection, selection,
+					selectionArgs, null, null, sortOrder);
 			break;
+			
 		case REMINDME_ID:
-			// Adding the ID to the original query
 			queryBuilder.appendWhere(RemindMeTable.COLUMN_ID + "="
 					+ uri.getLastPathSegment());
+			cursor = queryBuilder.query(db, projection, selection,
+					selectionArgs, null, null, sortOrder);
 			break;
+			
+		case REMINDME_SEARCH:
+			
+			cursor = queryBuilder.query(database.getReadableDatabase(),
+					projection, RemindMeTable.COLUMN_SUMMARY + " LIKE ?",
+					selectionArgs, null, null, sortOrder);
+			break;
+			
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
-
-		SQLiteDatabase db = database.getWritableDatabase();
-		Cursor cursor = queryBuilder.query(db, projection, selection,
-				selectionArgs, null, null, sortOrder);
-		// Make sure that potential listeners are getting notified
 		cursor.setNotificationUri(getContext().getContentResolver(), uri);
 
 		return cursor;

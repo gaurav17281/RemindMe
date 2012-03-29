@@ -6,11 +6,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 public class RemindMeDatabaseHelper extends SQLiteOpenHelper {
 
+	final Context calledActivity;
 	private static final String DATABASE_NAME = "remindmetable.db";
 	private static final int DATABASE_VERSION = 1;
 
 	public RemindMeDatabaseHelper(Context context) {
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+		calledActivity = context;
 	}
 
 	// Method is called during creation of the database
@@ -26,6 +28,6 @@ public class RemindMeDatabaseHelper extends SQLiteOpenHelper {
 			int newVersion) {
 		RemindMeTable.onUpgrade(database, oldVersion, newVersion);
 	}
-}
 
-			
+	
+}
