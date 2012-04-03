@@ -1,5 +1,7 @@
 package com.calenderEvent.Database;
 
+import java.util.ArrayList;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -35,4 +37,5 @@ public class RemindMeTable {
 		database.execSQL("DROP TABLE IF EXISTS " + TABLE_REMINDME);
 		onCreate(database);
 	}
+ 
 }

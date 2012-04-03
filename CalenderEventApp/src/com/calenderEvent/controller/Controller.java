@@ -1,5 +1,7 @@
 package com.calenderEvent.controller;
 
+import com.calenderEvent.Util.Constants;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -53,7 +55,7 @@ public class Controller extends Activity {
 
 			parent.addView(viewSwitcher);
 		} catch (Exception e) {
-			setLog("Error", e.toString(), States.SEVERITY_ERROR);
+			setLog("Error", e.toString(), Constants.SEVERITY_ERROR);
 		}
 	}
 
@@ -65,7 +67,7 @@ public class Controller extends Activity {
 			tv.setText(text);
 		} catch (Exception e) {
 			setLog("ERROR @ TEXTView CREATION", e.toString(),
-					States.SEVERITY_ERROR);
+					Constants.SEVERITY_ERROR);
 
 		}
 	}
@@ -73,23 +75,23 @@ public class Controller extends Activity {
 	public void setLog(String logMessage, String displayMessage, int severity) {
 
 		switch (severity) {
-		case States.SEVERITY_DEBUG:
+		case Constants.SEVERITY_DEBUG:
 		default:
 			Log.d(logMessage, displayMessage);
 			break;
-		case States.SEVERITY_WARN:
+		case Constants.SEVERITY_WARN:
 			Log.w(logMessage, displayMessage);
 			break;
-		case States.SEVERITY_VERBOSE:
+		case Constants.SEVERITY_VERBOSE:
 			Log.v(logMessage, displayMessage);
 			break;
-		case States.SEVERITY_INFO:
+		case Constants.SEVERITY_INFO:
 			Log.i(logMessage, displayMessage);
 			break;
-		case States.SEVERITY_ERROR:
+		case Constants.SEVERITY_ERROR:
 			Log.e(logMessage, displayMessage);
 			break;
-		case States.SEVERITY_WTF:
+		case Constants.SEVERITY_WTF:
 			Log.wtf(logMessage, displayMessage);
 			break;
 		}
