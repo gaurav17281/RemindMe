@@ -9,8 +9,9 @@ public class RemindMeTable {
 
 	// Database table
 	public static final String TABLE_REMINDME = "remindme";
-	public static final String COLUMN_ID = "_id";
 	public static final String COLUMN_PRIORTY = "priority";
+	public static final String COLUMN_ID = "id";
+	public static final String COLUMN_TITLE = "title";
 	public static final String COLUMN_SUMMARY = "summary";
 	public static final String COLUMN_DESCRIPTION = "description";
 	public static final String COLUMN_DATE = "date";
